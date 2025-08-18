@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <EditText
+            android:id="@+id/etNumero"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Numéro compteur"
+            android:inputType="text" />
+
+        <EditText
+            android:id="@+id/etNbFils"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Nombre de fils"
+            android:inputType="number" />
+
+        <EditText
+            android:id="@+id/etNbRoues"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Nombre de roues"
+            android:inputType="number" />
+
+        <EditText
+            android:id="@+id/etCalibre"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Calibre"
+            android:inputType="text" />
+
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Enregistrer"
+            android:layout_marginTop="20dp" />
+
+    </LinearLayout>
+</ScrollView>

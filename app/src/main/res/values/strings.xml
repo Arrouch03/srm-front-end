@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">SRMApp</string>
+    <string name="hint_username">Nom d\'utilisateur</string>
+    <string name="hint_password">Mot de passe</string>
+    <string name="button_login">Se connecter</string>
+    <string name="open">Ouvrir le menu</string>
+    <string name="close">Fermer le menu</string>
+    <string name="google_maps_key">AIzaSyARHlGVLoQb1w4iS64Tqtk28cr8RoNeFlc</string>
+    <string name="navigation_drawer_open">Ouvrir le menu</string>
+    <string name="navigation_drawer_close">Fermer le menu</string>
+    <string name="add_compteur">Ajouter un compteur</string>
+
+</resources>

@@ -113,6 +113,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             showAddCompteurDialog();
             closeDrawer();
             return true;
+        } else if (id == R.id.nav_liste_compteurs) {
+            startActivity(new Intent(this, ListeCompteursActivity.class));
+            closeDrawer();
+            return true;
         } else if (id == R.id.nav_logout) {
             Toast.makeText(this, "Déconnexion…", Toast.LENGTH_SHORT).show();
             finish();
@@ -144,8 +148,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     /** Ajout d’un marqueur avec petit décalage si doublon **/
     private void addMarkerWithOffset(double lat, double lng, String title, String snippet, float color) {
-        // Décalage léger pour éviter la superposition
-        double offsetLat = (Math.random() - 0.5) / 5000; // ≈ 20 m
+        double offsetLat = (Math.random() - 0.5) / 5000;
         double offsetLng = (Math.random() - 0.5) / 5000;
 
         LatLng pos = new LatLng(lat + offsetLat, lng + offsetLng);
@@ -161,7 +164,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private void loadCompteursFromAPI() {
         if (mMap == null) return;
 
-        mMap.clear(); // efface anciens marqueurs
+        mMap.clear();
 
         // ---- Eau ----
         apiService.getCompteursEau().enqueue(new Callback<List<CompteurEau>>() {
@@ -210,7 +213,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         });
     }
 
-    /** Active uniquement le point bleu Google Maps **/
+    /** Active le point bleu Google Maps **/
     private void enableMyLocationAndCenter() {
         try {
             if (mMap != null) mMap.setMyLocationEnabled(true);

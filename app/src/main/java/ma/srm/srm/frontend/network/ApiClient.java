@@ -6,7 +6,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public class ApiClient {
-    private static final String BASE_URL = "http://192.168.100.18:8080/srm-backend/api/";
+    private static final String BASE_URL = "http://192.168.11.193:8080/srm-backend/api/";
     private static Retrofit retrofit = null;
 
     public static Retrofit getClient() {

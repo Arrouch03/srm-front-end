@@ -12,6 +12,11 @@
         android:icon="@android:drawable/ic_input_add" />
 
     <item
+        android:id="@+id/nav_liste_compteurs"
+        android:title="Liste des compteurs"
+        android:icon="@android:drawable/ic_menu_agenda" />
+
+    <item
         android:id="@+id/nav_logout"
         android:title="Déconnexion"
         android:icon="@android:drawable/ic_lock_power_off" />

@@ -58,5 +58,11 @@
             android:name="ma.srm.srm.frontend.ui.ListeCompteursActivity"
             android:exported="true" />
 
+        <activity
+            android:name="ma.srm.srm.frontend.ui.CompteurDetailsActivity"
+            android:exported="true" />
+
+
+
     </application>
 </manifest>

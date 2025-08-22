@@ -23,10 +23,12 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import ma.srm.srm.frontend.R;
@@ -50,19 +52,21 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private NavigationView navigationView;
     private FloatingActionButton fabAdd;
 
+    // Listes pour garder en mémoire les compteurs chargés
+    private List<CompteurEau> compteursEau = new ArrayList<>();
+    private List<CompteurElectricite> compteursElectricite = new ArrayList<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
 
-        // API & localisation
         apiService = ApiClient.getClient().create(ApiService.class);
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-        // UI
-        drawerLayout   = findViewById(R.id.drawer_layout);
+        drawerLayout = findViewById(R.id.drawer_layout);
         navigationView = findViewById(R.id.nav_view);
-        fabAdd         = findViewById(R.id.fab_add);
+        fabAdd = findViewById(R.id.fab_add);
 
         if (navigationView != null) {
             navigationView.setNavigationItemSelectedListener(this::onNavItemSelected);
@@ -72,7 +76,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             fabAdd.setOnClickListener(v -> showAddCompteurDialog());
         }
 
-        // Map
         SupportMapFragment mapFragment =
                 (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         if (mapFragment != null) mapFragment.getMapAsync(this);
@@ -98,10 +101,73 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             requestLocationPermission();
         }
 
+        // Listener pour clic sur marker
+        mMap.setOnMarkerClickListener(this::onMarkerClick);
+
         loadCompteursFromAPI();
     }
 
-    /** Menu Drawer **/
+    /** Clic sur un marker **/
+    private boolean onMarkerClick(Marker marker) {
+        LatLng pos = marker.getPosition();
+        List<Object> nearby = getCompteursNear(pos);
+
+        if (nearby.size() == 1) {
+            openCompteurDetails(nearby.get(0));
+        } else if (nearby.size() > 1) {
+            openListeCompteursDialog(nearby);
+        }
+
+        return true; // consomme l'événement
+    }
+
+    /** Cherche tous les compteurs proches d'une position **/
+    private List<Object> getCompteursNear(LatLng pos) {
+        List<Object> result = new ArrayList<>();
+        double threshold = 0.0005; // ~50m
+
+        for (CompteurEau c : compteursEau) {
+            if (c.getLatitude() != null && c.getLongitude() != null &&
+                    Math.abs(c.getLatitude() - pos.latitude) < threshold &&
+                    Math.abs(c.getLongitude() - pos.longitude) < threshold) {
+                result.add(c);
+            }
+        }
+
+        for (CompteurElectricite c : compteursElectricite) {
+            if (c.getLatitude() != null && c.getLongitude() != null &&
+                    Math.abs(c.getLatitude() - pos.latitude) < threshold &&
+                    Math.abs(c.getLongitude() - pos.longitude) < threshold) {
+                result.add(c);
+            }
+        }
+
+        return result;
+    }
+
+    /** Ouvre CompteurDetailsActivity **/
+    private void openCompteurDetails(Object compteur) {
+        Intent intent = new Intent(this, CompteurDetailsActivity.class);
+        intent.putExtra("compteur", (java.io.Serializable) compteur);
+        startActivity(intent);
+    }
+
+    /** Affiche la liste des compteurs proches dans un dialog **/
+    private void openListeCompteursDialog(List<Object> compteurs) {
+        String[] items = new String[compteurs.size()];
+        for (int i = 0; i < compteurs.size(); i++) {
+            Object c = compteurs.get(i);
+            if (c instanceof CompteurEau) items[i] = "Eau - " + ((CompteurEau) c).getNumero();
+            else if (c instanceof CompteurElectricite) items[i] = "Élec - " + ((CompteurElectricite) c).getNumero();
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Compteurs disponibles")
+                .setItems(items, (dialog, which) -> openCompteurDetails(compteurs.get(which)))
+                .show();
+    }
+
+    /** Menu Drawer, ajout compteur et autres fonctions inchangées **/
     private boolean onNavItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
 
@@ -131,28 +197,22 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
     }
 
-    /** Dialog Ajouter un compteur **/
     private void showAddCompteurDialog() {
         String[] types = {"Eau", "Électricité"};
         new AlertDialog.Builder(this)
                 .setTitle("Ajouter un compteur")
                 .setItems(types, (d, which) -> {
-                    if (which == 0) {
-                        startActivity(new Intent(this, AddCompteurEauActivity.class));
-                    } else {
-                        startActivity(new Intent(this, AddCompteurElectriciteActivity.class));
-                    }
+                    if (which == 0) startActivity(new Intent(this, AddCompteurEauActivity.class));
+                    else startActivity(new Intent(this, AddCompteurElectriciteActivity.class));
                 })
                 .show();
     }
 
-    /** Ajout d’un marqueur avec petit décalage si doublon **/
     private void addMarkerWithOffset(double lat, double lng, String title, String snippet, float color) {
         double offsetLat = (Math.random() - 0.5) / 5000;
         double offsetLng = (Math.random() - 0.5) / 5000;
 
         LatLng pos = new LatLng(lat + offsetLat, lng + offsetLng);
-
         mMap.addMarker(new MarkerOptions()
                 .position(pos)
                 .title(title)
@@ -160,7 +220,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 .icon(BitmapDescriptorFactory.defaultMarker(color)));
     }
 
-    /** Charge compteurs eau & élec depuis API **/
     private void loadCompteursFromAPI() {
         if (mMap == null) return;
 
@@ -171,15 +230,14 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             @Override
             public void onResponse(Call<List<CompteurEau>> call, Response<List<CompteurEau>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    for (CompteurEau c : response.body()) {
+                    compteursEau.clear();
+                    compteursEau.addAll(response.body());
+
+                    for (CompteurEau c : compteursEau) {
                         if (c.getLatitude() == null || c.getLongitude() == null) continue;
-                        addMarkerWithOffset(
-                                c.getLatitude(),
-                                c.getLongitude(),
-                                "Eau - " + safe(c.getNumero()),
-                                "ID: " + c.getId(),
-                                BitmapDescriptorFactory.HUE_BLUE
-                        );
+                        addMarkerWithOffset(c.getLatitude(), c.getLongitude(),
+                                "Eau - " + safe(c.getNumero()), "ID: " + c.getId(),
+                                BitmapDescriptorFactory.HUE_BLUE);
                     }
                 }
             }
@@ -194,15 +252,14 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             @Override
             public void onResponse(Call<List<CompteurElectricite>> call, Response<List<CompteurElectricite>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    for (CompteurElectricite c : response.body()) {
+                    compteursElectricite.clear();
+                    compteursElectricite.addAll(response.body());
+
+                    for (CompteurElectricite c : compteursElectricite) {
                         if (c.getLatitude() == null || c.getLongitude() == null) continue;
-                        addMarkerWithOffset(
-                                c.getLatitude(),
-                                c.getLongitude(),
-                                "Élec - " + safe(c.getNumero()),
-                                "ID: " + c.getId(),
-                                BitmapDescriptorFactory.HUE_YELLOW
-                        );
+                        addMarkerWithOffset(c.getLatitude(), c.getLongitude(),
+                                "Élec - " + safe(c.getNumero()), "ID: " + c.getId(),
+                                BitmapDescriptorFactory.HUE_YELLOW);
                     }
                 }
             }
@@ -213,11 +270,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         });
     }
 
-    /** Active le point bleu Google Maps **/
     private void enableMyLocationAndCenter() {
-        try {
-            if (mMap != null) mMap.setMyLocationEnabled(true);
-        } catch (SecurityException ignore) {}
+        try { if (mMap != null) mMap.setMyLocationEnabled(true); } catch (SecurityException ignore) {}
 
         fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
             if (location != null && mMap != null) {
@@ -227,7 +281,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         });
     }
 
-    /** Permissions **/
     private boolean hasLocationPermission() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED;

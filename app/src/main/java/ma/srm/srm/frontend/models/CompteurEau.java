@@ -1,9 +1,11 @@
 package ma.srm.srm.frontend.models;
 
 import com.google.gson.annotations.SerializedName;
+
+import java.io.Serializable;
 import java.util.Date;
 
-public class CompteurEau {
+public class CompteurEau implements Serializable {
     private Long id;
     private String numero;
     private Double diametre;

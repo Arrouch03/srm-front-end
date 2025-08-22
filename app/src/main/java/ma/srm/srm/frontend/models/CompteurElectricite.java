@@ -1,9 +1,11 @@
 package ma.srm.srm.frontend.models;
 
 import com.google.gson.annotations.SerializedName;
+
+import java.io.Serializable;
 import java.util.Date;
 
-public class CompteurElectricite {
+public class CompteurElectricite implements Serializable {
     private Long id;
     private String numero;
 

@@ -1,7 +1,6 @@
 package ma.srm.srm.frontend.models;
 
 import com.google.gson.annotations.SerializedName;
-
 import java.io.Serializable;
 import java.util.Date;
 
@@ -10,10 +9,10 @@ public class CompteurElectricite implements Serializable {
     private String numero;
 
     @SerializedName("calibre")
-    private String calibre;   // correction : String car VARCHAR2 en base
+    private String calibre;
 
     @SerializedName("datePose")
-    private Date datePose;    // correction : Date car DATE en base
+    private Date datePose;
 
     private Double longitude;
     private Double latitude;
@@ -29,6 +28,9 @@ public class CompteurElectricite implements Serializable {
 
     @SerializedName("typeId")
     private Long typeId;
+
+    // ✅ Nouvelle propriété pour la photo en Base64
+    private String photo;
 
     // Getters & Setters
     public Long getId() { return id; }
@@ -60,4 +62,7 @@ public class CompteurElectricite implements Serializable {
 
     public Long getTypeId() { return typeId; }
     public void setTypeId(Long typeId) { this.typeId = typeId; }
+
+    public String getPhoto() { return photo; }
+    public void setPhoto(String photo) { this.photo = photo; }
 }

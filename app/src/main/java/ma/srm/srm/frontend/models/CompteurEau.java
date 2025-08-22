@@ -1,7 +1,6 @@
 package ma.srm.srm.frontend.models;
 
 import com.google.gson.annotations.SerializedName;
-
 import java.io.Serializable;
 import java.util.Date;
 
@@ -11,7 +10,7 @@ public class CompteurEau implements Serializable {
     private Double diametre;
 
     @SerializedName("datePose")
-    private Date datePose;   // Correction : Date au lieu de String
+    private Date datePose;
 
     private Double longitude;
     private Double latitude;
@@ -21,6 +20,9 @@ public class CompteurEau implements Serializable {
 
     @SerializedName("typeId")
     private Long typeId;
+
+    // ✅ Nouvelle propriété pour la photo en Base64
+    private String photo;
 
     // Getters & Setters
     public Long getId() { return id; }
@@ -46,4 +48,7 @@ public class CompteurEau implements Serializable {
 
     public Long getTypeId() { return typeId; }
     public void setTypeId(Long typeId) { this.typeId = typeId; }
+
+    public String getPhoto() { return photo; }
+    public void setPhoto(String photo) { this.photo = photo; }
 }

@@ -24,6 +24,13 @@
             android:inputType="numberDecimal" />
 
         <Button
+            android:id="@+id/btnChoosePhoto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Choisir une photo"
+            android:layout_marginTop="16dp" />
+
+        <Button
             android:id="@+id/btnSaveEau"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

@@ -8,8 +8,10 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -39,6 +41,7 @@ import retrofit2.Response;
 public class AddCompteurEauActivity extends AppCompatActivity {
 
     private EditText etNumeroEau, etDiametreEau;
+    private Spinner spinnerStatut;
     private Button btnChoosePhoto, btnSaveEau;
     private Uri selectedPhotoUri;
 
@@ -56,8 +59,16 @@ public class AddCompteurEauActivity extends AppCompatActivity {
 
         etNumeroEau = findViewById(R.id.etNumeroEau);
         etDiametreEau = findViewById(R.id.etDiametreEau);
+        spinnerStatut = findViewById(R.id.spinnerStatut);
         btnChoosePhoto = findViewById(R.id.btnChoosePhoto);
         btnSaveEau = findViewById(R.id.btnSaveEau);
+
+        // Spinner Statut
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item,
+                new String[]{"À contrôler", "Frauduleux", "Inaccessible"});
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerStatut.setAdapter(adapter);
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         requestLocation();
@@ -125,6 +136,8 @@ public class AddCompteurEauActivity extends AppCompatActivity {
             return;
         }
 
+        String statut = spinnerStatut.getSelectedItem().toString();
+
         SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
         long userId = prefs.getLong("USER_ID", -1);
         if (userId == -1) {
@@ -140,6 +153,7 @@ public class AddCompteurEauActivity extends AppCompatActivity {
         compteur.setLongitude(longitude);
         compteur.setTypeId(1L); // Type Eau
         compteur.setUserId(userId);
+        compteur.setStatut(statut);
 
         ApiService api = ApiClient.getClient().create(ApiService.class);
         api.createCompteurEau(compteur).enqueue(new Callback<CompteurEau>() {

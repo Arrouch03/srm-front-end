@@ -1,5 +1,6 @@
 package ma.srm.srm.frontend.ui;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -13,7 +14,7 @@ import ma.srm.srm.frontend.models.CompteurElectricite;
 
 public class CompteurDetailsActivity extends AppCompatActivity {
 
-    private TextView tvNumero, tvDatePose, tvLatitude, tvLongitude;
+    private TextView tvNumero, tvDatePose, tvLatitude, tvLongitude, tvStatut;
     private TextView tvDiametre, tvNbFils, tvNbRoues, tvCalibre;
     private LinearLayout sectionEau, sectionElectricite;
 
@@ -26,8 +27,8 @@ public class CompteurDetailsActivity extends AppCompatActivity {
         tvDatePose = findViewById(R.id.tvDatePose);
         tvLatitude = findViewById(R.id.tvLatitude);
         tvLongitude = findViewById(R.id.tvLongitude);
+        tvStatut = findViewById(R.id.tvStatut);
 
-        // Champs spécifiques
         tvDiametre = findViewById(R.id.tvDiametre);
         tvNbFils = findViewById(R.id.tvNbFils);
         tvNbRoues = findViewById(R.id.tvNbRoues);
@@ -36,15 +37,12 @@ public class CompteurDetailsActivity extends AppCompatActivity {
         sectionEau = findViewById(R.id.sectionEau);
         sectionElectricite = findViewById(R.id.sectionElectricite);
 
-        // Vérifier quel type de compteur est reçu
         Object obj = getIntent().getSerializableExtra("compteur");
 
         if (obj instanceof CompteurEau) {
-            CompteurEau compteur = (CompteurEau) obj;
-            afficherCompteurEau(compteur);
+            afficherCompteurEau((CompteurEau) obj);
         } else if (obj instanceof CompteurElectricite) {
-            CompteurElectricite compteur = (CompteurElectricite) obj;
-            afficherCompteurElectricite(compteur);
+            afficherCompteurElectricite((CompteurElectricite) obj);
         }
     }
 
@@ -55,6 +53,7 @@ public class CompteurDetailsActivity extends AppCompatActivity {
         tvLatitude.setText("Latitude : " + compteur.getLatitude());
         tvLongitude.setText("Longitude : " + compteur.getLongitude());
         tvDiametre.setText("Diamètre : " + compteur.getDiametre());
+        afficherStatut(compteur.getStatut());
     }
 
     private void afficherCompteurElectricite(CompteurElectricite compteur) {
@@ -66,5 +65,30 @@ public class CompteurDetailsActivity extends AppCompatActivity {
         tvNbFils.setText("Nb fils : " + compteur.getNbFils());
         tvNbRoues.setText("Nb roues : " + compteur.getNbRoues());
         tvCalibre.setText("Calibre : " + compteur.getCalibre());
+        afficherStatut(compteur.getStatut());
+    }
+
+    private void afficherStatut(String statut) {
+        if (statut == null) {
+            tvStatut.setText("Statut : N/A");
+            tvStatut.setTextColor(Color.GRAY);
+            return;
+        }
+
+        tvStatut.setText("Statut : " + statut);
+
+        switch (statut) {
+            case "À contrôler":
+                tvStatut.setTextColor(Color.parseColor("#FFA500")); // Orange
+                break;
+            case "Frauduleux":
+                tvStatut.setTextColor(Color.RED);
+                break;
+            case "Inaccessible":
+                tvStatut.setTextColor(Color.GRAY);
+                break;
+            default:
+                tvStatut.setTextColor(Color.BLACK);
+        }
     }
 }

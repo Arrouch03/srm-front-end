@@ -5,11 +5,13 @@ import java.util.List;
 import ma.srm.srm.frontend.models.CompteurEau;
 import ma.srm.srm.frontend.models.CompteurElectricite;
 import ma.srm.srm.frontend.models.CompteurType;
+import ma.srm.srm.frontend.models.Secteur;
 import ma.srm.srm.frontend.models.User;
 import okhttp3.MultipartBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.Headers;
 import retrofit2.http.Multipart;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
@@ -26,6 +28,7 @@ public interface ApiService {
 
     // 🔹 Compteurs Eau
     @GET("compteurs-eau")
+    @Headers("Cache-Control: no-cache")
     Call<List<CompteurEau>> getCompteursEau();
 
     @GET("compteurs-eau/{id}")
@@ -48,8 +51,14 @@ public interface ApiService {
     Call<Void> uploadCompteurEauPhoto(@Path("id") Long id,
                                       @Part MultipartBody.Part file);
 
+    // 🔹 Mettre à jour le statut d'un compteur Eau
+    @PUT("compteurs-eau/{id}/statut")
+    Call<Void> updateCompteurEauStatut(@Path("id") Long id, @Body String statut);
+
+
     // 🔹 Compteurs Electricité
     @GET("compteurs-electricite")
+    @Headers("Cache-Control: no-cache")
     Call<List<CompteurElectricite>> getCompteursElectricite();
 
     @GET("compteurs-electricite/{id}")
@@ -72,7 +81,15 @@ public interface ApiService {
     Call<Void> uploadCompteurElectricitePhoto(@Path("id") Long id,
                                               @Part MultipartBody.Part file);
 
+    // 🔹 Mettre à jour le statut d'un compteur Electricité
+    @PUT("compteurs-electricite/{id}/statut")
+    Call<Void> updateCompteurElectriciteStatut(@Path("id") Long id, @Body String statut);
+
     // 🔹 Compteur Types
     @GET("compteur-types")
     Call<List<CompteurType>> getCompteurTypes();
+
+    // 🔹 Récupérer le secteur du jour pour un agent
+    @GET("planification/aujourdhui/{agentId}")
+    Call<Secteur> getSecteurDuJour(@Path("agentId") Long agentId);
 }

@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName;
 import java.io.Serializable;
 import java.util.Date;
 
-public class CompteurElectricite implements Serializable {
+public class CompteurElectricite implements java.io.Serializable {
     private Long id;
     private String numero;
 
@@ -29,8 +29,11 @@ public class CompteurElectricite implements Serializable {
     @SerializedName("typeId")
     private Long typeId;
 
-    // ✅ Nouvelle propriété pour la photo en Base64
+    // Nouvelle propriété pour la photo en Base64
     private String photo;
+
+    // ✅ Nouveau champ statut
+    private String statut;
 
     // Getters & Setters
     public Long getId() { return id; }
@@ -65,4 +68,7 @@ public class CompteurElectricite implements Serializable {
 
     public String getPhoto() { return photo; }
     public void setPhoto(String photo) { this.photo = photo; }
+
+    public String getStatut() { return statut; }
+    public void setStatut(String statut) { this.statut = statut; }
 }

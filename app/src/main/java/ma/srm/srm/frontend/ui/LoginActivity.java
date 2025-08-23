@@ -1,15 +1,21 @@
 package ma.srm.srm.frontend.ui;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
 
 import ma.srm.srm.frontend.R;
+import ma.srm.srm.frontend.models.Secteur;
 import ma.srm.srm.frontend.models.User;
 import ma.srm.srm.frontend.network.ApiClient;
 import ma.srm.srm.frontend.network.ApiService;
@@ -62,18 +68,35 @@ public class LoginActivity extends AppCompatActivity {
                         return;
                     }
 
-                    // ✅ Sauvegarde de l'ID utilisateur dans "user_prefs"
-                    SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+                    // ✅ Sauvegarde de l'ID utilisateur
+                    SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
                     SharedPreferences.Editor editor = prefs.edit();
                     editor.putLong("USER_ID", loggedUser.getId());
                     editor.apply();
 
                     Toast.makeText(LoginActivity.this, "Connexion réussie", Toast.LENGTH_SHORT).show();
 
+                    // 🔹 Appel API pour récupérer le secteur du jour
+                    apiService.getSecteurDuJour(loggedUser.getId()).enqueue(new Callback<Secteur>() {
+                        @Override
+                        public void onResponse(Call<Secteur> call, Response<Secteur> response) {
+                            if (response.isSuccessful() && response.body() != null) {
+                                Secteur secteurDuJour = response.body();
+                                afficherNotification(secteurDuJour.getNom());
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<Secteur> call, Throwable t) {
+                            t.printStackTrace();
+                        }
+                    });
+
                     // ✅ Redirection vers la carte
                     Intent intent = new Intent(LoginActivity.this, MapActivity.class);
                     startActivity(intent);
                     finish();
+
                 } else {
                     Toast.makeText(LoginActivity.this, "Identifiants invalides", Toast.LENGTH_SHORT).show();
                 }
@@ -84,5 +107,30 @@ public class LoginActivity extends AppCompatActivity {
                 Toast.makeText(LoginActivity.this, "Erreur serveur: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    // 🔹 Afficher une notification avec le secteur du jour
+    private void afficherNotification(String nomSecteur) {
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        String channelId = "secteur_du_jour";
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    channelId,
+                    "Secteur du jour",
+                    NotificationManager.IMPORTANCE_HIGH
+            );
+            notificationManager.createNotificationChannel(channel);
+        }
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelId)
+                .setSmallIcon(R.drawable.ic_notification) // ton icône
+                .setContentTitle("Secteur à contrôler aujourd'hui")
+                .setContentText(nomSecteur)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true);
+
+        notificationManager.notify(1, builder.build());
     }
 }

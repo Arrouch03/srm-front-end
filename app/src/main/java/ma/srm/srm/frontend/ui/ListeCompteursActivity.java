@@ -95,13 +95,23 @@ public class ListeCompteursActivity extends AppCompatActivity {
 
     private void filterCompteurs(String query) {
         List<Object> filtered = new ArrayList<>();
+        query = query.toLowerCase();
 
         for (Object obj : allCompteurs) {
-            if (query.isEmpty()) {
-                filtered.add(obj);
-            } else if (obj instanceof CompteurEau && query.equals("eau")) {
-                filtered.add(obj);
-            } else if (obj instanceof CompteurElectricite && query.equals("electricite")) {
+            boolean matchesType = false;
+            boolean matchesStatut = false;
+
+            if (obj instanceof CompteurEau) {
+                CompteurEau c = (CompteurEau) obj;
+                matchesType = query.equals("eau") || query.isEmpty();
+                matchesStatut = c.getStatut() != null && c.getStatut().toLowerCase().contains(query);
+            } else if (obj instanceof CompteurElectricite) {
+                CompteurElectricite c = (CompteurElectricite) obj;
+                matchesType = query.equals("electricite") || query.isEmpty();
+                matchesStatut = c.getStatut() != null && c.getStatut().toLowerCase().contains(query);
+            }
+
+            if (matchesType || matchesStatut) {
                 filtered.add(obj);
             }
         }

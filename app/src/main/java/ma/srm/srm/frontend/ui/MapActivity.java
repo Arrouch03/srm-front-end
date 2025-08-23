@@ -22,9 +22,9 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 
@@ -52,9 +52,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private NavigationView navigationView;
     private FloatingActionButton fabAdd;
 
-    // Listes pour garder en mémoire les compteurs chargés
-    private List<CompteurEau> compteursEau = new ArrayList<>();
-    private List<CompteurElectricite> compteursElectricite = new ArrayList<>();
+    private final List<CompteurEau> compteursEau = new ArrayList<>();
+    private final List<CompteurElectricite> compteursElectricite = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,13 +100,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             requestLocationPermission();
         }
 
-        // Listener pour clic sur marker
         mMap.setOnMarkerClickListener(this::onMarkerClick);
 
         loadCompteursFromAPI();
     }
 
-    /** Clic sur un marker **/
     private boolean onMarkerClick(Marker marker) {
         LatLng pos = marker.getPosition();
         List<Object> nearby = getCompteursNear(pos);
@@ -117,11 +114,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         } else if (nearby.size() > 1) {
             openListeCompteursDialog(nearby);
         }
-
-        return true; // consomme l'événement
+        return true;
     }
 
-    /** Cherche tous les compteurs proches d'une position **/
     private List<Object> getCompteursNear(LatLng pos) {
         List<Object> result = new ArrayList<>();
         double threshold = 0.0005; // ~50m
@@ -145,14 +140,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         return result;
     }
 
-    /** Ouvre CompteurDetailsActivity **/
     private void openCompteurDetails(Object compteur) {
         Intent intent = new Intent(this, CompteurDetailsActivity.class);
         intent.putExtra("compteur", (java.io.Serializable) compteur);
         startActivity(intent);
     }
 
-    /** Affiche la liste des compteurs proches dans un dialog **/
     private void openListeCompteursDialog(List<Object> compteurs) {
         String[] items = new String[compteurs.size()];
         for (int i = 0; i < compteurs.size(); i++) {
@@ -167,7 +160,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 .show();
     }
 
-    /** Menu Drawer, ajout compteur et autres fonctions inchangées **/
     private boolean onNavItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
 
@@ -208,39 +200,51 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 .show();
     }
 
-    private void addMarkerWithOffset(double lat, double lng, String title, String snippet, float color) {
+    private void addMarkerWithOffset(double lat, double lng, String title, String snippet, float color, boolean isFrauduleux) {
         double offsetLat = (Math.random() - 0.5) / 5000;
         double offsetLng = (Math.random() - 0.5) / 5000;
 
         LatLng pos = new LatLng(lat + offsetLat, lng + offsetLng);
-        mMap.addMarker(new MarkerOptions()
+
+        mMap.addMarker(new com.google.android.gms.maps.model.MarkerOptions()
                 .position(pos)
                 .title(title)
                 .snippet(snippet)
                 .icon(BitmapDescriptorFactory.defaultMarker(color)));
+
+        if (isFrauduleux) {
+            mMap.addCircle(new CircleOptions()
+                    .center(pos)
+                    .radius(15) // rayon en mètres
+                    .strokeColor(0xFFFF0000) // rouge
+                    .fillColor(0x44FF0000) // rouge transparent
+                    .strokeWidth(2f));
+        }
     }
 
     private void loadCompteursFromAPI() {
         if (mMap == null) return;
 
         mMap.clear();
+        compteursEau.clear();
+        compteursElectricite.clear();
 
         // ---- Eau ----
         apiService.getCompteursEau().enqueue(new Callback<List<CompteurEau>>() {
             @Override
             public void onResponse(Call<List<CompteurEau>> call, Response<List<CompteurEau>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    compteursEau.clear();
                     compteursEau.addAll(response.body());
-
                     for (CompteurEau c : compteursEau) {
                         if (c.getLatitude() == null || c.getLongitude() == null) continue;
+                        boolean isFraud = "frauduleux".equalsIgnoreCase(c.getStatut());
                         addMarkerWithOffset(c.getLatitude(), c.getLongitude(),
                                 "Eau - " + safe(c.getNumero()), "ID: " + c.getId(),
-                                BitmapDescriptorFactory.HUE_BLUE);
+                                BitmapDescriptorFactory.HUE_BLUE, isFraud);
                     }
                 }
             }
+
             @Override
             public void onFailure(Call<List<CompteurEau>> call, Throwable t) {
                 Toast.makeText(MapActivity.this, "Erreur compteurs eau", Toast.LENGTH_SHORT).show();
@@ -252,17 +256,17 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             @Override
             public void onResponse(Call<List<CompteurElectricite>> call, Response<List<CompteurElectricite>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    compteursElectricite.clear();
                     compteursElectricite.addAll(response.body());
-
                     for (CompteurElectricite c : compteursElectricite) {
                         if (c.getLatitude() == null || c.getLongitude() == null) continue;
+                        boolean isFraud = "frauduleux".equalsIgnoreCase(c.getStatut());
                         addMarkerWithOffset(c.getLatitude(), c.getLongitude(),
                                 "Élec - " + safe(c.getNumero()), "ID: " + c.getId(),
-                                BitmapDescriptorFactory.HUE_YELLOW);
+                                BitmapDescriptorFactory.HUE_YELLOW, isFraud);
                     }
                 }
             }
+
             @Override
             public void onFailure(Call<List<CompteurElectricite>> call, Throwable t) {
                 Toast.makeText(MapActivity.this, "Erreur compteurs électricité", Toast.LENGTH_SHORT).show();

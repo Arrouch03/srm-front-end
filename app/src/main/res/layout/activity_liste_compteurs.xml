@@ -11,7 +11,7 @@
         android:id="@+id/etFiltre"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Filtrer par type (eau / electricite)"
+        android:hint="Filtrer par type (eau / electricite) ou statut"
         android:padding="8dp"
         android:background="@android:drawable/edit_text"
         android:layout_marginBottom="8dp"/>

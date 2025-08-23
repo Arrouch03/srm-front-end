@@ -37,12 +37,20 @@
             android:hint="Calibre"
             android:inputType="text" />
 
+        <!-- Spinner pour le statut -->
+        <Spinner
+            android:id="@+id/spinnerStatut"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:spinnerMode="dropdown"
+            android:layout_marginTop="16dp"/>
+
         <Button
             android:id="@+id/btnChoosePhoto"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Choisir une photo"
-            android:layout_marginTop="16dp" />
+            android:layout_marginTop="16dp"
+            android:text="Choisir une photo" />
 
         <Button
             android:id="@+id/btnSave"

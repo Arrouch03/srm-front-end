@@ -1,5 +1,6 @@
 package ma.srm.srm.frontend.ui;
 
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,7 +21,6 @@ public class CompteursAdapter extends RecyclerView.Adapter<CompteursAdapter.View
 
     private List<Object> compteurs;
 
-    // ✅ Le constructeur doit avoir le même nom que la classe
     public CompteursAdapter(List<Object> compteurs) {
         this.compteurs = compteurs;
     }
@@ -41,10 +41,12 @@ public class CompteursAdapter extends RecyclerView.Adapter<CompteursAdapter.View
             CompteurEau c = (CompteurEau) obj;
             holder.tvNumero.setText("Eau - " + c.getNumero());
             holder.tvInfos.setText("Diamètre: " + c.getDiametre() + " | Posé le: " + formatDate(c.getDatePose()));
+            setStatut(holder.tvStatut, c.getStatut());
         } else if (obj instanceof CompteurElectricite) {
             CompteurElectricite c = (CompteurElectricite) obj;
             holder.tvNumero.setText("Électricité - " + c.getNumero());
             holder.tvInfos.setText("Calibre: " + c.getCalibre() + " | Posé le: " + formatDate(c.getDatePose()));
+            setStatut(holder.tvStatut, c.getStatut());
         }
     }
 
@@ -59,16 +61,40 @@ public class CompteursAdapter extends RecyclerView.Adapter<CompteursAdapter.View
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvNumero, tvInfos;
+        TextView tvNumero, tvInfos, tvStatut;
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             tvNumero = itemView.findViewById(R.id.tvNumero);
             tvInfos = itemView.findViewById(R.id.tvInfos);
+            tvStatut = itemView.findViewById(R.id.tvStatut); // nouveau TextView pour statut
         }
     }
 
     private String formatDate(java.util.Date date) {
         if (date == null) return "";
         return new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(date);
+    }
+
+    private void setStatut(TextView tv, String statut) {
+        if (statut == null) {
+            tv.setText("Statut : N/A");
+            tv.setTextColor(Color.GRAY);
+            return;
+        }
+
+        tv.setText("Statut : " + statut);
+        switch (statut) {
+            case "À contrôler":
+                tv.setTextColor(Color.parseColor("#FFA500")); // orange
+                break;
+            case "Frauduleux":
+                tv.setTextColor(Color.RED);
+                break;
+            case "Inaccessible":
+                tv.setTextColor(Color.GRAY);
+                break;
+            default:
+                tv.setTextColor(Color.BLACK);
+        }
     }
 }

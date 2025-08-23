@@ -1,4 +1,5 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp">
@@ -8,23 +9,46 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <TextView android:id="@+id/tvNumero"
+        <TextView
+            android:id="@+id/tvNumero"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="18sp"
-            android:textStyle="bold"/>
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:paddingBottom="8dp"/>
 
-        <TextView android:id="@+id/tvDatePose"
+        <TextView
+            android:id="@+id/tvDatePose"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
-        <TextView android:id="@+id/tvLatitude"
+        <TextView
+            android:id="@+id/tvLatitude"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
-        <TextView android:id="@+id/tvLongitude"
+        <TextView
+            android:id="@+id/tvLongitude"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
+
+        <!-- Affichage du statut -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:padding="12dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="4dp">
+
+            <TextView
+                android:id="@+id/tvStatut"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textColor="@android:color/holo_orange_dark"
+                android:text="Statut" />
+        </androidx.cardview.widget.CardView>
 
         <!-- Section spécifique à Compteur Eau -->
         <LinearLayout
@@ -32,9 +56,11 @@
             android:orientation="vertical"
             android:visibility="gone"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:paddingTop="8dp">
 
-            <TextView android:id="@+id/tvDiametre"
+            <TextView
+                android:id="@+id/tvDiametre"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
         </LinearLayout>
@@ -45,17 +71,21 @@
             android:orientation="vertical"
             android:visibility="gone"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:paddingTop="8dp">
 
-            <TextView android:id="@+id/tvNbFils"
+            <TextView
+                android:id="@+id/tvNbFils"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
 
-            <TextView android:id="@+id/tvNbRoues"
+            <TextView
+                android:id="@+id/tvNbRoues"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
 
-            <TextView android:id="@+id/tvCalibre"
+            <TextView
+                android:id="@+id/tvCalibre"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
         </LinearLayout>

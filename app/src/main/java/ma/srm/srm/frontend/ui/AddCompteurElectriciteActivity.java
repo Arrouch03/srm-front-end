@@ -5,13 +5,16 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -37,6 +40,7 @@ import retrofit2.Response;
 public class AddCompteurElectriciteActivity extends AppCompatActivity {
 
     private EditText etNumero, etNbFils, etNbRoues, etCalibre;
+    private Spinner spinnerStatut;
     private Button btnChoosePhoto, btnSave;
     private Uri selectedPhotoUri;
     private FusedLocationProviderClient fusedLocationClient;
@@ -46,6 +50,7 @@ public class AddCompteurElectriciteActivity extends AppCompatActivity {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 100;
     private static final int PICK_IMAGE_REQUEST_CODE = 101;
+    private static final int STORAGE_PERMISSION_REQUEST_CODE = 102;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,13 +61,21 @@ public class AddCompteurElectriciteActivity extends AppCompatActivity {
         etNbFils = findViewById(R.id.etNbFils);
         etNbRoues = findViewById(R.id.etNbRoues);
         etCalibre = findViewById(R.id.etCalibre);
+        spinnerStatut = findViewById(R.id.spinnerStatut);
         btnChoosePhoto = findViewById(R.id.btnChoosePhoto);
         btnSave = findViewById(R.id.btnSave);
+
+        // Spinner Statut
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item,
+                new String[]{"À contrôler", "Frauduleux", "Inaccessible"});
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerStatut.setAdapter(adapter);
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         requestLocation();
 
-        btnChoosePhoto.setOnClickListener(v -> openGallery());
+        btnChoosePhoto.setOnClickListener(v -> checkStoragePermissionAndOpenGallery());
         btnSave.setOnClickListener(v -> saveCompteur());
     }
 
@@ -83,6 +96,17 @@ public class AddCompteurElectriciteActivity extends AppCompatActivity {
         });
     }
 
+    private void checkStoragePermissionAndOpenGallery() {
+        String perm = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ?
+                Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
+
+        if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{perm}, STORAGE_PERMISSION_REQUEST_CODE);
+        } else {
+            openGallery();
+        }
+    }
+
     private void openGallery() {
         Intent intent = new Intent(Intent.ACTION_PICK);
         intent.setType("image/*");
@@ -90,7 +114,7 @@ public class AddCompteurElectriciteActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == PICK_IMAGE_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
             selectedPhotoUri = data.getData();
@@ -103,6 +127,7 @@ public class AddCompteurElectriciteActivity extends AppCompatActivity {
         String nbFilsStr = etNbFils.getText().toString().trim();
         String nbRouesStr = etNbRoues.getText().toString().trim();
         String calibre = etCalibre.getText().toString().trim();
+        String statut = spinnerStatut.getSelectedItem().toString();
 
         if (numero.isEmpty() || nbFilsStr.isEmpty() || nbRouesStr.isEmpty() || calibre.isEmpty()) {
             Toast.makeText(this, "Veuillez remplir tous les champs", Toast.LENGTH_SHORT).show();
@@ -131,37 +156,32 @@ public class AddCompteurElectriciteActivity extends AppCompatActivity {
         compteur.setNbRoues(nbRoues);
         compteur.setCalibre(calibre);
         compteur.setUserId(userId);
-        compteur.setTypeId(2L); // 2 = Electricité
+        compteur.setTypeId(2L); // Electricité
         compteur.setLatitude(latitude);
         compteur.setLongitude(longitude);
         compteur.setDatePose(new Date());
+        compteur.setStatut(statut);
 
         ApiService api = ApiClient.getClient().create(ApiService.class);
         api.createCompteurElectricite(compteur).enqueue(new Callback<CompteurElectricite>() {
             @Override
             public void onResponse(Call<CompteurElectricite> call, Response<CompteurElectricite> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    Long compteurId = response.body().getId(); // récupère l'ID renvoyé par le backend
-                    Toast.makeText(AddCompteurElectriciteActivity.this,
-                            "Compteur ajouté avec succès", Toast.LENGTH_SHORT).show();
-
+                    Long compteurId = response.body().getId();
+                    Toast.makeText(AddCompteurElectriciteActivity.this, "Compteur ajouté avec succès", Toast.LENGTH_SHORT).show();
                     if (selectedPhotoUri != null) {
                         uploadPhoto(compteurId, selectedPhotoUri);
                     } else {
                         finish();
                     }
                 } else {
-                    Toast.makeText(AddCompteurElectriciteActivity.this,
-                            "Erreur ajout compteur: " + response.code(),
-                            Toast.LENGTH_LONG).show();
+                    Toast.makeText(AddCompteurElectriciteActivity.this, "Erreur ajout: " + response.code(), Toast.LENGTH_LONG).show();
                 }
             }
 
             @Override
             public void onFailure(Call<CompteurElectricite> call, Throwable t) {
-                Toast.makeText(AddCompteurElectriciteActivity.this,
-                        "Échec : " + t.getMessage(),
-                        Toast.LENGTH_LONG).show();
+                Toast.makeText(AddCompteurElectriciteActivity.this, "Échec : " + t.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -170,6 +190,7 @@ public class AddCompteurElectriciteActivity extends AppCompatActivity {
         String path = FileUtils.getPath(this, photoUri);
         if (path == null) {
             Toast.makeText(this, "Impossible de récupérer le chemin de la photo", Toast.LENGTH_SHORT).show();
+            finish();
             return;
         }
 
@@ -182,21 +203,16 @@ public class AddCompteurElectriciteActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<Void> call, Response<Void> response) {
                 if (response.isSuccessful()) {
-                    Toast.makeText(AddCompteurElectriciteActivity.this,
-                            "Photo uploadée avec succès", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(AddCompteurElectriciteActivity.this, "Photo uploadée avec succès", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(AddCompteurElectriciteActivity.this,
-                            "Erreur upload photo: " + response.code(),
-                            Toast.LENGTH_LONG).show();
+                    Toast.makeText(AddCompteurElectriciteActivity.this, "Erreur upload photo: " + response.code(), Toast.LENGTH_LONG).show();
                 }
                 finish();
             }
 
             @Override
             public void onFailure(Call<Void> call, Throwable t) {
-                Toast.makeText(AddCompteurElectriciteActivity.this,
-                        "Échec upload photo: " + t.getMessage(),
-                        Toast.LENGTH_LONG).show();
+                Toast.makeText(AddCompteurElectriciteActivity.this, "Échec upload photo: " + t.getMessage(), Toast.LENGTH_LONG).show();
                 finish();
             }
         });
@@ -211,6 +227,10 @@ public class AddCompteurElectriciteActivity extends AppCompatActivity {
                 grantResults.length > 0 &&
                 grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             requestLocation();
+        } else if (requestCode == STORAGE_PERMISSION_REQUEST_CODE &&
+                grantResults.length > 0 &&
+                grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            openGallery();
         }
     }
 }

@@ -4,55 +4,53 @@ import com.google.gson.annotations.SerializedName;
 import java.io.Serializable;
 import java.util.Date;
 
-public class CompteurElectricite implements java.io.Serializable {
+public class CompteurElectricite implements Serializable {
+
     private Long id;
     private String numero;
-
-    @SerializedName("calibre")
-    private String calibre;
-
-    @SerializedName("datePose")
-    private Date datePose;
-
-    private Double longitude;
-    private Double latitude;
-
-    @SerializedName("nbFils")
     private Integer nbFils;
-
-    @SerializedName("nbRoues")
     private Integer nbRoues;
-
-    @SerializedName("userId")
-    private Long userId;
-
-    @SerializedName("typeId")
-    private Long typeId;
-
-    // Nouvelle propriété pour la photo en Base64
-    private String photo;
-
-    // ✅ Nouveau champ statut
+    private String calibre;
+    private Date datePose;
+    private Double latitude;
+    private Double longitude;
     private String statut;
 
+    // ✅ Envoyer secteurId directement
+    @SerializedName("secteurId")
+    private Long secteurId;
+
+    @SerializedName("user")
+    private UserRef user;
+
+    @SerializedName("type")
+    private TypeRef type;
+
+    // -------------------------
+    // Classes internes pour références
+    // -------------------------
+    public static class UserRef implements Serializable {
+        private Long id;
+        public UserRef(Long id) { this.id = id; }
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+    }
+
+    public static class TypeRef implements Serializable {
+        private Long id;
+        public TypeRef(Long id) { this.id = id; }
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+    }
+
+    // -------------------------
     // Getters & Setters
+    // -------------------------
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
     public String getNumero() { return numero; }
     public void setNumero(String numero) { this.numero = numero; }
-
-    public String getCalibre() { return calibre; }
-    public void setCalibre(String calibre) { this.calibre = calibre; }
-
-    public Date getDatePose() { return datePose; }
-    public void setDatePose(Date datePose) { this.datePose = datePose; }
-
-    public Double getLongitude() { return longitude; }
-    public void setLongitude(Double longitude) { this.longitude = longitude; }
-
-    public Double getLatitude() { return latitude; }
-    public void setLatitude(Double latitude) { this.latitude = latitude; }
 
     public Integer getNbFils() { return nbFils; }
     public void setNbFils(Integer nbFils) { this.nbFils = nbFils; }
@@ -60,15 +58,27 @@ public class CompteurElectricite implements java.io.Serializable {
     public Integer getNbRoues() { return nbRoues; }
     public void setNbRoues(Integer nbRoues) { this.nbRoues = nbRoues; }
 
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
+    public String getCalibre() { return calibre; }
+    public void setCalibre(String calibre) { this.calibre = calibre; }
 
-    public Long getTypeId() { return typeId; }
-    public void setTypeId(Long typeId) { this.typeId = typeId; }
+    public Date getDatePose() { return datePose; }
+    public void setDatePose(Date datePose) { this.datePose = datePose; }
 
-    public String getPhoto() { return photo; }
-    public void setPhoto(String photo) { this.photo = photo; }
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
 
     public String getStatut() { return statut; }
     public void setStatut(String statut) { this.statut = statut; }
+
+    public Long getSecteurId() { return secteurId; }
+    public void setSecteurId(Long secteurId) { this.secteurId = secteurId; }
+
+    public UserRef getUser() { return user; }
+    public void setUser(UserRef user) { this.user = user; }
+
+    public TypeRef getType() { return type; }
+    public void setType(TypeRef type) { this.type = type; }
 }

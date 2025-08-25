@@ -9,5 +9,6 @@
     <string name="navigation_drawer_open">Ouvrir le menu</string>
     <string name="navigation_drawer_close">Fermer le menu</string>
     <string name="add_compteur">Ajouter un compteur</string>
+    <string name="select_secteur">Sélectionnez un secteur</string>
 
 </resources>

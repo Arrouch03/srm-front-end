@@ -2,11 +2,11 @@ package ma.srm.srm.frontend.ui;
 
 import android.Manifest;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -21,12 +21,15 @@ import androidx.core.content.ContextCompat;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
+import com.google.gson.Gson;
 
 import java.io.File;
 import java.util.Date;
+import java.util.List;
 
 import ma.srm.srm.frontend.R;
 import ma.srm.srm.frontend.models.CompteurElectricite;
+import ma.srm.srm.frontend.models.Secteur;
 import ma.srm.srm.frontend.network.ApiClient;
 import ma.srm.srm.frontend.network.ApiService;
 import ma.srm.srm.frontend.utils.FileUtils;
@@ -40,7 +43,7 @@ import retrofit2.Response;
 public class AddCompteurElectriciteActivity extends AppCompatActivity {
 
     private EditText etNumero, etNbFils, etNbRoues, etCalibre;
-    private Spinner spinnerStatut;
+    private Spinner spinnerStatut, spinnerSecteur;
     private Button btnChoosePhoto, btnSave;
     private Uri selectedPhotoUri;
     private FusedLocationProviderClient fusedLocationClient;
@@ -52,31 +55,42 @@ public class AddCompteurElectriciteActivity extends AppCompatActivity {
     private static final int PICK_IMAGE_REQUEST_CODE = 101;
     private static final int STORAGE_PERMISSION_REQUEST_CODE = 102;
 
+    private List<Secteur> secteurs;
+
+    private final Long userId = 1L;  // ID utilisateur connecté
+    private final Long typeId = 1L;  // ID type compteur électricité
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_compteur_electricite);
 
+        // Init views
         etNumero = findViewById(R.id.etNumero);
         etNbFils = findViewById(R.id.etNbFils);
         etNbRoues = findViewById(R.id.etNbRoues);
         etCalibre = findViewById(R.id.etCalibre);
         spinnerStatut = findViewById(R.id.spinnerStatut);
+        spinnerSecteur = findViewById(R.id.spinnerSecteur);
         btnChoosePhoto = findViewById(R.id.btnChoosePhoto);
         btnSave = findViewById(R.id.btnSave);
 
-        // Spinner Statut
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+        // Remplir spinner Statut
+        ArrayAdapter<String> adapterStatut = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_item,
-                new String[]{"À contrôler", "Frauduleux", "Inaccessible"});
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerStatut.setAdapter(adapter);
+                new String[]{"Normal", "À contrôler", "Frauduleux", "Inaccessible"});
+        adapterStatut.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerStatut.setAdapter(adapterStatut);
 
+        // Localisation
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         requestLocation();
 
+        // Charger secteurs
+        loadSecteurs();
+
         btnChoosePhoto.setOnClickListener(v -> checkStoragePermissionAndOpenGallery());
-        btnSave.setOnClickListener(v -> saveCompteur());
+        btnSave.setOnClickListener(v -> saveCompteurElectricite());
     }
 
     private void requestLocation() {
@@ -87,11 +101,40 @@ public class AddCompteurElectriciteActivity extends AppCompatActivity {
                     LOCATION_PERMISSION_REQUEST_CODE);
             return;
         }
-
         fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
             if (location != null) {
                 latitude = location.getLatitude();
                 longitude = location.getLongitude();
+                Log.d("AddCompteurElec", "Localisation détectée: lat=" + latitude + ", long=" + longitude);
+            } else {
+                Log.w("AddCompteurElec", "Aucune localisation trouvée");
+            }
+        });
+    }
+
+    private void loadSecteurs() {
+        ApiService api = ApiClient.getClient().create(ApiService.class);
+        api.getSecteurs().enqueue(new Callback<List<Secteur>>() {
+            @Override
+            public void onResponse(Call<List<Secteur>> call, Response<List<Secteur>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    secteurs = response.body();
+                    ArrayAdapter<Secteur> adapter = new ArrayAdapter<>(AddCompteurElectriciteActivity.this,
+                            android.R.layout.simple_spinner_item,
+                            secteurs);
+                    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                    spinnerSecteur.setAdapter(adapter);
+                    Log.d("AddCompteurElec", "Secteurs chargés: " + secteurs.size());
+                } else {
+                    Toast.makeText(AddCompteurElectriciteActivity.this,
+                            "Erreur chargement secteurs", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<Secteur>> call, Throwable t) {
+                Toast.makeText(AddCompteurElectriciteActivity.this,
+                        "Échec chargement secteurs: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -118,18 +161,17 @@ public class AddCompteurElectriciteActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == PICK_IMAGE_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
             selectedPhotoUri = data.getData();
-            Toast.makeText(this, "Photo sélectionnée", Toast.LENGTH_SHORT).show();
+            Log.d("AddCompteurElec", "Photo sélectionnée: " + selectedPhotoUri);
         }
     }
 
-    private void saveCompteur() {
+    private void saveCompteurElectricite() {
         String numero = etNumero.getText().toString().trim();
+        String calibre = etCalibre.getText().toString().trim();
         String nbFilsStr = etNbFils.getText().toString().trim();
         String nbRouesStr = etNbRoues.getText().toString().trim();
-        String calibre = etCalibre.getText().toString().trim();
-        String statut = spinnerStatut.getSelectedItem().toString();
 
-        if (numero.isEmpty() || nbFilsStr.isEmpty() || nbRouesStr.isEmpty() || calibre.isEmpty()) {
+        if (numero.isEmpty() || calibre.isEmpty() || nbFilsStr.isEmpty() || nbRouesStr.isEmpty()) {
             Toast.makeText(this, "Veuillez remplir tous les champs", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -139,83 +181,98 @@ public class AddCompteurElectriciteActivity extends AppCompatActivity {
             nbFils = Integer.parseInt(nbFilsStr);
             nbRoues = Integer.parseInt(nbRouesStr);
         } catch (NumberFormatException e) {
-            Toast.makeText(this, "Nombre de fils ou de roues invalide", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Nombre de fils / roues invalide", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
-        long userId = prefs.getLong("USER_ID", -1);
-        if (userId == -1) {
-            Toast.makeText(this, "Utilisateur non connecté", Toast.LENGTH_SHORT).show();
+        Secteur secteur = (Secteur) spinnerSecteur.getSelectedItem();
+        if (secteur == null) {
+            Toast.makeText(this, "Veuillez choisir un secteur", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        String statut = spinnerStatut.getSelectedItem().toString();
 
         CompteurElectricite compteur = new CompteurElectricite();
         compteur.setNumero(numero);
+        compteur.setCalibre(calibre);
         compteur.setNbFils(nbFils);
         compteur.setNbRoues(nbRoues);
-        compteur.setCalibre(calibre);
-        compteur.setUserId(userId);
-        compteur.setTypeId(2L); // Electricité
+        compteur.setDatePose(new Date());
         compteur.setLatitude(latitude);
         compteur.setLongitude(longitude);
-        compteur.setDatePose(new Date());
         compteur.setStatut(statut);
 
+        // ✅ Utiliser secteurId directement
+        compteur.setSecteurId(secteur.getId());
+        compteur.setUser(new CompteurElectricite.UserRef(userId));
+        compteur.setType(new CompteurElectricite.TypeRef(typeId));
+
+        // 🔹 Log JSON envoyé
+        String json = new Gson().toJson(compteur);
+        Log.d("AddCompteurElec", "JSON envoyé au backend: " + json);
+
         ApiService api = ApiClient.getClient().create(ApiService.class);
-        api.createCompteurElectricite(compteur).enqueue(new Callback<CompteurElectricite>() {
+        Call<CompteurElectricite> call = api.createCompteurElectricite(compteur);
+
+        call.enqueue(new Callback<CompteurElectricite>() {
             @Override
             public void onResponse(Call<CompteurElectricite> call, Response<CompteurElectricite> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    Long compteurId = response.body().getId();
-                    Toast.makeText(AddCompteurElectriciteActivity.this, "Compteur ajouté avec succès", Toast.LENGTH_SHORT).show();
+                    Log.i("AddCompteurElec", "Succès: compteur créé avec ID=" + response.body().getId());
+                    Toast.makeText(AddCompteurElectriciteActivity.this,
+                            "Compteur électricité ajouté !", Toast.LENGTH_SHORT).show();
+
                     if (selectedPhotoUri != null) {
-                        uploadPhoto(compteurId, selectedPhotoUri);
+                        uploadPhoto(response.body().getId(), selectedPhotoUri);
                     } else {
                         finish();
                     }
                 } else {
-                    Toast.makeText(AddCompteurElectriciteActivity.this, "Erreur ajout: " + response.code(), Toast.LENGTH_LONG).show();
+                    try {
+                        String errorBody = response.errorBody() != null ? response.errorBody().string() : "vide";
+                        Log.e("AddCompteurElec", "Erreur HTTP " + response.code() + " - Body: " + errorBody);
+                    } catch (Exception e) {
+                        Log.e("AddCompteurElec", "Erreur parsing errorBody", e);
+                    }
+                    Toast.makeText(AddCompteurElectriciteActivity.this, "Erreur d'ajout", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<CompteurElectricite> call, Throwable t) {
-                Toast.makeText(AddCompteurElectriciteActivity.this, "Échec : " + t.getMessage(), Toast.LENGTH_LONG).show();
+                Log.e("AddCompteurElec", "Échec réseau: " + t.getMessage(), t);
+                Toast.makeText(AddCompteurElectriciteActivity.this, "Erreur réseau", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void uploadPhoto(Long compteurId, Uri photoUri) {
-        String path = FileUtils.getPath(this, photoUri);
-        if (path == null) {
-            Toast.makeText(this, "Impossible de récupérer le chemin de la photo", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
+        try {
+            File file = FileUtils.uriToFile(photoUri, this);
+            RequestBody requestFile = RequestBody.create(MediaType.parse("image/*"), file);
+            MultipartBody.Part body = MultipartBody.Part.createFormData("file", file.getName(), requestFile);
 
-        File file = new File(path);
-        RequestBody requestFile = RequestBody.create(file, MediaType.parse("image/*"));
-        MultipartBody.Part body = MultipartBody.Part.createFormData("file", file.getName(), requestFile);
+            Log.d("AddCompteurElec", "Upload photo: compteurId=" + compteurId + ", fichier=" + file.getName());
 
-        ApiService api = ApiClient.getClient().create(ApiService.class);
-        api.uploadCompteurElectricitePhoto(compteurId, body).enqueue(new Callback<Void>() {
-            @Override
-            public void onResponse(Call<Void> call, Response<Void> response) {
-                if (response.isSuccessful()) {
-                    Toast.makeText(AddCompteurElectriciteActivity.this, "Photo uploadée avec succès", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(AddCompteurElectriciteActivity.this, "Erreur upload photo: " + response.code(), Toast.LENGTH_LONG).show();
+            ApiService api = ApiClient.getClient().create(ApiService.class);
+            api.uploadCompteurElectricitePhoto(compteurId, body).enqueue(new Callback<Void>() {
+                @Override
+                public void onResponse(Call<Void> call, Response<Void> response) {
+                    Log.i("AddCompteurElec", "Photo upload OK, réponse=" + response.code());
+                    finish();
                 }
-                finish();
-            }
 
-            @Override
-            public void onFailure(Call<Void> call, Throwable t) {
-                Toast.makeText(AddCompteurElectriciteActivity.this, "Échec upload photo: " + t.getMessage(), Toast.LENGTH_LONG).show();
-                finish();
-            }
-        });
+                @Override
+                public void onFailure(Call<Void> call, Throwable t) {
+                    Log.e("AddCompteurElec", "Échec upload photo: " + t.getMessage(), t);
+                    finish();
+                }
+            });
+        } catch (Exception e) {
+            Log.e("AddCompteurElec", "Erreur upload photo", e);
+            finish();
+        }
     }
 
     @Override
@@ -223,6 +280,7 @@ public class AddCompteurElectriciteActivity extends AppCompatActivity {
                                            @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE &&
                 grantResults.length > 0 &&
                 grantResults[0] == PackageManager.PERMISSION_GRANTED) {

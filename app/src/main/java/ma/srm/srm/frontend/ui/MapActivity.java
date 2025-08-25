@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.widget.Toast;
 
@@ -22,7 +23,6 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -34,6 +34,7 @@ import java.util.List;
 import ma.srm.srm.frontend.R;
 import ma.srm.srm.frontend.models.CompteurEau;
 import ma.srm.srm.frontend.models.CompteurElectricite;
+import ma.srm.srm.frontend.models.PositionUpdate;
 import ma.srm.srm.frontend.network.ApiClient;
 import ma.srm.srm.frontend.network.ApiService;
 import retrofit2.Call;
@@ -102,6 +103,25 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
         mMap.setOnMarkerClickListener(this::onMarkerClick);
 
+        mMap.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener() {
+            @Override
+            public void onMarkerDragStart(Marker marker) { }
+
+            @Override
+            public void onMarkerDrag(Marker marker) { }
+
+            @Override
+            public void onMarkerDragEnd(Marker marker) {
+                LatLng newPos = marker.getPosition();
+                Object compteur = marker.getTag();
+                Log.d("MapActivity", "Marker drag ended: " + newPos.latitude + ", " + newPos.longitude);
+
+                if (compteur != null) {
+                    updateCompteurPosition(compteur, newPos.latitude, newPos.longitude);
+                }
+            }
+        });
+
         loadCompteursFromAPI();
     }
 
@@ -119,25 +139,36 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     private List<Object> getCompteursNear(LatLng pos) {
         List<Object> result = new ArrayList<>();
-        double threshold = 0.0005; // ~50m
+        double rayon = 20; // distance en mètres
 
         for (CompteurEau c : compteursEau) {
             if (c.getLatitude() != null && c.getLongitude() != null &&
-                    Math.abs(c.getLatitude() - pos.latitude) < threshold &&
-                    Math.abs(c.getLongitude() - pos.longitude) < threshold) {
+                    distanceEnMetres(pos.latitude, pos.longitude, c.getLatitude(), c.getLongitude()) <= rayon) {
                 result.add(c);
             }
         }
 
         for (CompteurElectricite c : compteursElectricite) {
             if (c.getLatitude() != null && c.getLongitude() != null &&
-                    Math.abs(c.getLatitude() - pos.latitude) < threshold &&
-                    Math.abs(c.getLongitude() - pos.longitude) < threshold) {
+                    distanceEnMetres(pos.latitude, pos.longitude, c.getLatitude(), c.getLongitude()) <= rayon) {
                 result.add(c);
             }
         }
 
         return result;
+    }
+
+    private double distanceEnMetres(double lat1, double lon1, Double lat2, Double lon2) {
+        if (lat2 == null || lon2 == null) return Double.MAX_VALUE;
+
+        final int R = 6371000; // rayon Terre en mètres
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
     }
 
     private void openCompteurDetails(Object compteur) {
@@ -200,26 +231,15 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 .show();
     }
 
-    private void addMarkerWithOffset(double lat, double lng, String title, String snippet, float color, boolean isFrauduleux) {
-        double offsetLat = (Math.random() - 0.5) / 5000;
-        double offsetLng = (Math.random() - 0.5) / 5000;
-
-        LatLng pos = new LatLng(lat + offsetLat, lng + offsetLng);
-
-        mMap.addMarker(new com.google.android.gms.maps.model.MarkerOptions()
+    private void addMarker(double lat, double lng, String title, String snippet, float color, Object compteur) {
+        LatLng pos = new LatLng(lat, lng);
+        Marker marker = mMap.addMarker(new com.google.android.gms.maps.model.MarkerOptions()
                 .position(pos)
                 .title(title)
                 .snippet(snippet)
-                .icon(BitmapDescriptorFactory.defaultMarker(color)));
-
-        if (isFrauduleux) {
-            mMap.addCircle(new CircleOptions()
-                    .center(pos)
-                    .radius(15) // rayon en mètres
-                    .strokeColor(0xFFFF0000) // rouge
-                    .fillColor(0x44FF0000) // rouge transparent
-                    .strokeWidth(2f));
-        }
+                .icon(BitmapDescriptorFactory.defaultMarker(color))
+                .draggable(true));
+        if (marker != null) marker.setTag(compteur);
     }
 
     private void loadCompteursFromAPI() {
@@ -229,7 +249,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         compteursEau.clear();
         compteursElectricite.clear();
 
-        // ---- Eau ----
         apiService.getCompteursEau().enqueue(new Callback<List<CompteurEau>>() {
             @Override
             public void onResponse(Call<List<CompteurEau>> call, Response<List<CompteurEau>> response) {
@@ -237,21 +256,19 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     compteursEau.addAll(response.body());
                     for (CompteurEau c : compteursEau) {
                         if (c.getLatitude() == null || c.getLongitude() == null) continue;
-                        boolean isFraud = "frauduleux".equalsIgnoreCase(c.getStatut());
-                        addMarkerWithOffset(c.getLatitude(), c.getLongitude(),
+                        addMarker(c.getLatitude(), c.getLongitude(),
                                 "Eau - " + safe(c.getNumero()), "ID: " + c.getId(),
-                                BitmapDescriptorFactory.HUE_BLUE, isFraud);
+                                BitmapDescriptorFactory.HUE_BLUE, c);
                     }
                 }
             }
 
             @Override
             public void onFailure(Call<List<CompteurEau>> call, Throwable t) {
-                Toast.makeText(MapActivity.this, "Erreur compteurs eau", Toast.LENGTH_SHORT).show();
+                Log.e("MapActivity", "Erreur compteurs eau: " + t.getMessage());
             }
         });
 
-        // ---- Électricité ----
         apiService.getCompteursElectricite().enqueue(new Callback<List<CompteurElectricite>>() {
             @Override
             public void onResponse(Call<List<CompteurElectricite>> call, Response<List<CompteurElectricite>> response) {
@@ -259,19 +276,71 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     compteursElectricite.addAll(response.body());
                     for (CompteurElectricite c : compteursElectricite) {
                         if (c.getLatitude() == null || c.getLongitude() == null) continue;
-                        boolean isFraud = "frauduleux".equalsIgnoreCase(c.getStatut());
-                        addMarkerWithOffset(c.getLatitude(), c.getLongitude(),
+                        addMarker(c.getLatitude(), c.getLongitude(),
                                 "Élec - " + safe(c.getNumero()), "ID: " + c.getId(),
-                                BitmapDescriptorFactory.HUE_YELLOW, isFraud);
+                                BitmapDescriptorFactory.HUE_YELLOW, c);
                     }
                 }
             }
 
             @Override
             public void onFailure(Call<List<CompteurElectricite>> call, Throwable t) {
-                Toast.makeText(MapActivity.this, "Erreur compteurs électricité", Toast.LENGTH_SHORT).show();
+                Log.e("MapActivity", "Erreur compteurs électricité: " + t.getMessage());
             }
         });
+    }
+
+    private void updateCompteurPosition(Object compteur, double lat, double lng) {
+        PositionUpdate pos = new PositionUpdate(lat, lng);
+
+        if (compteur instanceof CompteurEau) {
+            CompteurEau c = (CompteurEau) compteur;
+            c.setLatitude(lat);
+            c.setLongitude(lng);
+
+            Call<Void> call = apiService.updateCompteurEauPosition(c.getId(), pos);
+            call.enqueue(new Callback<Void>() {
+                @Override
+                public void onResponse(Call<Void> call, Response<Void> response) {
+                    if (response.isSuccessful()) {
+                        Toast.makeText(MapActivity.this, "Position Eau mise à jour", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(MapActivity.this, "Erreur API Eau: " + response.code(), Toast.LENGTH_LONG).show();
+                        Log.e("MapActivity", "Erreur réponse API Eau: " + response.code() + " - " + response.message());
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<Void> call, Throwable t) {
+                    Toast.makeText(MapActivity.this, "Erreur mise à jour Eau: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                    Log.e("MapActivity", "Erreur réseau Eau", t);
+                }
+            });
+
+        } else if (compteur instanceof CompteurElectricite) {
+            CompteurElectricite c = (CompteurElectricite) compteur;
+            c.setLatitude(lat);
+            c.setLongitude(lng);
+
+            Call<Void> call = apiService.updateCompteurElectricitePosition(c.getId(), pos);
+            call.enqueue(new Callback<Void>() {
+                @Override
+                public void onResponse(Call<Void> call, Response<Void> response) {
+                    if (response.isSuccessful()) {
+                        Toast.makeText(MapActivity.this, "Position Électricité mise à jour", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(MapActivity.this, "Erreur API Élec: " + response.code(), Toast.LENGTH_LONG).show();
+                        Log.e("MapActivity", "Erreur réponse API Élec: " + response.code() + " - " + response.message());
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<Void> call, Throwable t) {
+                    Toast.makeText(MapActivity.this, "Erreur mise à jour Élec: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                    Log.e("MapActivity", "Erreur réseau Élec", t);
+                }
+            });
+        }
     }
 
     private void enableMyLocationAndCenter() {

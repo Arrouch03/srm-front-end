@@ -43,7 +43,15 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:spinnerMode="dropdown"
-            android:layout_marginTop="16dp"/>
+            android:layout_marginTop="16dp" />
+
+        <!-- Spinner pour le secteur -->
+        <Spinner
+            android:id="@+id/spinnerSecteur"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:spinnerMode="dropdown"
+            android:layout_marginTop="16dp" />
 
         <Button
             android:id="@+id/btnChoosePhoto"

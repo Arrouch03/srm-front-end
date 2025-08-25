@@ -2,47 +2,60 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:fillViewport="true">
 
     <LinearLayout
-        android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
 
+        <!-- Numéro du compteur -->
         <EditText
-            android:id="@+id/etNumeroEau"
+            android:id="@+id/etNumero"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Numéro du compteur" />
+            android:hint="Numéro du compteur"
+            android:inputType="text"
+            android:layout_marginBottom="12dp"/>
 
+        <!-- Diamètre du compteur -->
         <EditText
-            android:id="@+id/etDiametreEau"
+            android:id="@+id/etDiametre"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Diamètre"
-            android:inputType="numberDecimal"/>
+            android:inputType="numberDecimal"
+            android:layout_marginBottom="12dp"/>
 
-        <!-- Spinner pour le statut -->
+        <!-- Spinner Statut -->
         <Spinner
             android:id="@+id/spinnerStatut"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:spinnerMode="dropdown"
-            android:layout_marginTop="16dp"/>
+            android:layout_marginBottom="12dp"/>
 
+        <!-- Spinner Secteur -->
+        <Spinner
+            android:id="@+id/spinnerSecteur"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Choisir une photo -->
         <Button
             android:id="@+id/btnChoosePhoto"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Choisir une photo"
-            android:layout_marginTop="16dp"/>
+            android:layout_marginBottom="20dp"/>
 
+        <!-- Bouton Enregistrer -->
         <Button
-            android:id="@+id/btnSaveEau"
+            android:id="@+id/btnSave"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Enregistrer le compteur"
-            android:layout_marginTop="16dp"/>
+            android:text="Enregistrer"/>
 
     </LinearLayout>
 </ScrollView>
